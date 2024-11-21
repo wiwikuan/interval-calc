@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+    <title>不囉唆的音程計算器 by NiceChord 好和弦</title>
+    <script src="tonal.min.js"></script>
+    <script src="abcjs-basic-min.js"></script>
+
+    <style>
+        input[type="text"] {
+            font-size: 20px; /* increases font size */
+            padding: 5px; /* adds space around the text */
+            width: 400px; /* set a specific width */
+        }
+        #chordOutput {
+            font-size: 20px;
+            padding: 5px;
+        }		
+        #footnote {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        h3 {
+            margin-bottom: 5px;
+        }
+        a {
+            color: #2563eb; 
+            text-decoration: none;  
+        }
+
+        a:hover {
+            color: #1d4ed8; 
+            text-decoration: underline;
+        }
+
+       
+        a:visited {
+            color: #7c3aed;
+        }
+    </style>
+</head>
+<body>
+		<h3>不囉唆的音程計算器 by <a href="https://nicechord.com">NiceChord 好和弦</a></h3>
+        <div id="footnote">註：第一個音會被當作低音；所有音程會判別為八度內，同音則自動判為「完全八度」。</div>
+    <div>
+        <input type="text" id="inputField" oninput="updateChord(this.value)" placeholder="輸入兩個音名，用空白分隔（例：Db G#）">
+    </div>
+    <div id="chordOutput"></div>
+    <div id="paper"></div>
+
+    <script>
+        function convertToChineseInterval(result) {
+            // 定義音程性質對應的中文描述
+            const intervalQualities = {
+                'M': '大',
+                'm': '小',
+                'A': '增',
+                'd': '減',
+                'P': '完全',
+                'AA': '倍增',
+                'dd': '倍減',
+                'AAA': '三倍增',
+                'ddd': '三倍減',
+                'AAAA': '四倍增',
+                'dddd': '四倍減'
+            };
+
+            // 定義數字對應的中文描述
+            const chineseNumbers = {
+                '1': '一',
+                '2': '二',
+                '3': '三',
+                '4': '四',
+                '5': '五',
+                '6': '六',
+                '7': '七',
+                '8': '八'
+            };
+
+            // 提取第一個字元作為度數
+            const degree = result[0];
+
+            // 提取第二個及以後的字元作為音程性質
+            const quality = result.slice(1);
+
+            // 檢查音程性質是否存在於我們的對照表中
+            if (intervalQualities.hasOwnProperty(quality)) {
+                return `${intervalQualities[quality]}${chineseNumbers[degree]}度`;
+            } else {
+                return "未知的音程性質";
+            }
+        }
+
+
+        function updateChord(value) {
+            
+            // 1. 只保留字母(不分大小寫)、空白和#符號
+            const valueCleaned = value.replace(/[^a-zA-Z\s#]/g, '')
+            .replace(/[xX]/g, '##');  // 把 x 和 X 替換成 ##
+            
+            // 2. 移除開頭和結尾的空白，分割成陣列，限制每個元素最多3個字元，並只取前兩個元素
+            const firstTwoNotes = valueCleaned
+                .trim()
+                .split(/\s+/)
+                .map(item => {
+                    const firstChar = item.charAt(0).toUpperCase();  // 只把第一個字元轉大寫
+                    const restChars = item.slice(1, 3);  // 取得剩餘字元（最多2個），保持原樣
+                    return firstChar + restChars;
+                })
+                .slice(0, 2);
+
+            let result = Tonal.Interval.distance(firstTwoNotes[0], firstTwoNotes[1]);
+            if (result == "1P") {
+                result = "8P";
+            }
+            console.log(convertToChineseInterval(result));
+            let resultWithOctave = [];
+            resultWithOctave[0] = firstTwoNotes[0] + "4";
+            resultWithOctave[1] = Tonal.Note.transpose(resultWithOctave[0], result);
+            console.log(resultWithOctave);
+           
+
+            if (result != "") {
+                document.getElementById('chordOutput').innerHTML = firstTwoNotes[0] + " 和 " + firstTwoNotes[1] + " 的音程是 <b>" + convertToChineseInterval(result) + "</b>";
+                
+                let abcNoteArray = resultWithOctave.map(item => {
+
+                    // Replace '#' with '^' and 'b' with '_'
+                    let replaced = item.replace(/#/g, '^').replace(/b/g, '_');
+
+
+                    // Check if item contains '5' or '6', if so, convert to lowercase
+								    if (replaced.includes('5') || replaced.includes('6')) {
+								        replaced = replaced.toLowerCase();
+								    }
+								                    
+                    // Move the first character to the end
+                    let rearranged = replaced.substring(1) + replaced.charAt(0);
+
+
+                    // Check if item contains '6', if so, add a "'" at the end
+									  if (rearranged.includes('6')) {
+									      rearranged = rearranged + "'";
+									  }  
+
+							      // Remove all numbers
+								    rearranged = rearranged.replace(/\d/g, '');		
+                
+                    return rearranged;
+                });
+                
+                const abcSyntax = "[" + abcNoteArray.join('8') + "8]"
+                ABCJS.renderAbc("paper", `X:1\nK:C\n${abcSyntax}`);
+			
+            }
+        }
+    </script>
+</body>
+</html>
