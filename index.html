@@ -113,10 +113,17 @@
                 })
                 .slice(0, 2);
 
+            // 把完全一度改成完全八度。
             let result = Tonal.Interval.distance(firstTwoNotes[0], firstTwoNotes[1]);
             if (result == "1P") {
                 result = "8P";
             }
+
+            // Tonal.js 在三倍增六度以上會輸出「-1」，硬改回「6」。
+            if (result.startsWith('-1')) {
+                result = '6' + result.slice(2);
+            }
+
             console.log(convertToChineseInterval(result));
             let resultWithOctave = [];
             resultWithOctave[0] = firstTwoNotes[0] + "4";
